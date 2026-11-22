@@ -1,0 +1,11 @@
+{
+  "default": "https://fuel.gazebosim.org/1.0/OpenRobotics/worlds/Jetty World",
+  "jetty": "https://fuel.gazebosim.org/1.0/OpenRobotics/worlds/Jetty World",
+  "simple_urban_01": "https://fuel.gazebosim.org/1.0/OpenRobotics/worlds/Urban Simple 01",
+  "finals_systems_prelim2": "https://fuel.gazebosim.org/1.0/OpenRobotics/worlds/Finals Systems Preliminary Round 2",
+  "urban_circuit_02": "https://fuel.gazebosim.org/1.0/OpenRobotics/worlds/Urban Circuit 02",
+  "urban_circuit_08": "https://fuel.gazebosim.org/1.0/OpenRobotics/worlds/Urban Circuit 08",
+  "cave": "https://fuel.gazebosim.org/1.0/OpenRobotics/worlds/Cave World",
+  "cave_qual": "https://fuel.gazebosim.org/1.0/OpenRobotics/worlds/Cave Qualification",
+  "edifice": "https://fuel.gazebosim.org/1.0/OpenRobotics/worlds/Edifice demo"
+}

@@ -7,10 +7,14 @@ from s7dcls import TransformProtocol
 
 @dataclass(kw_only=True, frozen=True)
 class ScaffoldWorldTextTransform(TransformProtocol[str]):
+    text_transform: TransformProtocol[str] | None = None
     world_transform: TransformProtocol[ET.Element] | None = None
 
     def __call__(self, text: str) -> str:
         text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+        if self.text_transform is not None:
+            text = self.text_transform(text)
+
         root = ET.fromstring(text)
         world = root.find("world")
 

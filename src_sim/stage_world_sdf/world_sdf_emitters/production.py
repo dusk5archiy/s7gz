@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from s7dcls import EmitterProtocol, TransformProtocol
+
 from src_sim.settings.resource import ResourceSettings
 from src_sim.stage_world_sdf.world_text_transforms.production import (
     ProductionWorldTextTransform,
