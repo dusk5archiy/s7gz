@@ -1,3 +1,3 @@
-from lib.type_emitters.protocol import TypeEmitterProtocol
+from lib.type_emitters.protocol import EmitterProtocol
 
-SubprocessLauncherProtocol = TypeEmitterProtocol[int]
+SubprocessLauncherProtocol = EmitterProtocol[int]

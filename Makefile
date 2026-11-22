@@ -1,7 +1,7 @@
 SHELL:=/bin/bash
 MAKEFLAGS += --silent
 
-.PHONY: sim-build sim sim-off sim-logs sim-enter
+.PHONY: sim-build sim-on sim-off sim-logs sim-enter
 sim-build:
 	bash docker_sim/host-build.sh
 

@@ -34,7 +34,7 @@ class RawJsonDictFetcher(DictFetcherProtocol):
         else:
             _json_object = json.loads(self.file.read_text())
         if not is_dict_str_str(_json_object):
-            raise TypeError({"file": self.file, "expected_type": str(dict[str, str])})
+            raise ValueError({"file": self.file, "expected_type": str(dict[str, str])})
         return _json_object
 
 

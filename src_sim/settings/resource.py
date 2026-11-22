@@ -5,6 +5,7 @@ from pathlib import Path
 
 from lib.dataclass_fetchers.standard import StandardDataclassFetcher
 from lib.dict_fetchers.standard import StandardShellDictFetcher
+from src_common.conventions.env_prefix import SIM_ENV_PREFIX
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -46,6 +47,6 @@ class ResourceSettings:
     @classmethod
     def build(cls) -> ResourceSettings:
         return StandardDataclassFetcher.Args(
-            dtype=ResourceSettings,
-            dict_fetchers=[StandardShellDictFetcher(prefix="__SIM__")],
+            datacls=ResourceSettings,
+            dict_emitter=StandardShellDictFetcher(prefix=SIM_ENV_PREFIX),
         ).build()()

@@ -1,7 +1,3 @@
-from __future__ import annotations
+from lib.type_emitters.protocol import TransformProtocol
 
-from typing import Protocol
-
-
-class StringTransformProtocol(Protocol):
-    def __call__(self, *, string: str) -> str: ...
+StringTransformProtocol = TransformProtocol[str]

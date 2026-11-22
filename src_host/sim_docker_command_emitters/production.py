@@ -5,7 +5,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from lib.dict_fetchers.standard import StandardJsonDictFetcher, StandardShellDictFetcher
-from lib.type_emitters.protocol import TypeEmitterProtocol
+from lib.type_emitters.protocol import EmitterProtocol
+from src_common.conventions.env_prefix import SIM_ENV_PREFIX
 from src_common.docker_command_emitters.models import VolumeMount
 from src_common.docker_command_emitters.standard import StandardDockerCommandEmitter
 from src_common.subprocess_launchers.models import SubprocessCommand
@@ -14,14 +15,14 @@ from src_host.settings.sim_container import SimContainerSettings
 
 
 @dataclass(kw_only=True, frozen=True)
-class ProductionSimDockerCommandEmitter(TypeEmitterProtocol[SubprocessCommand]):
+class ProductionSimDockerCommandEmitter(EmitterProtocol[SubprocessCommand]):
     s_sim_container: SimContainerSettings = field(
         default_factory=SimContainerSettings.build
     )
     s_common: CommonSettings = field(default_factory=CommonSettings.build)
 
     def _build_env(self) -> dict[str, str]:
-        s_sim_container = self.s_sim_container
+        env_prefix = SIM_ENV_PREFIX
         env: dict[str, str] = {
             "NVIDIA_DRIVER_CAPABILITIES": "all",
             "NVIDIA_VISIBLE_DEVICES": "all",
@@ -31,13 +32,13 @@ class ProductionSimDockerCommandEmitter(TypeEmitterProtocol[SubprocessCommand]):
             env["DISPLAY"] = display
 
         ui_vars = StandardJsonDictFetcher(
-            prefix=s_sim_container.env_prefix, file=self.s_common.ui_json_file
+            prefix=env_prefix, file=self.s_common.ui_json_file
         )()
-        shell_vars = StandardShellDictFetcher(prefix=s_sim_container.env_prefix)()
+        shell_vars = StandardShellDictFetcher(prefix=env_prefix)()
 
         for key, value in {**ui_vars, **shell_vars}.items():
             if value != "":
-                env[f"{s_sim_container.env_prefix}{key}"] = value
+                env[f"{env_prefix}{key}"] = value
 
         return env
 

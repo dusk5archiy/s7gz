@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from lib.type_emitters.protocol import TypeEmitterProtocol
+from lib.type_emitters.protocol import EmitterProtocol
 from src_common.subprocess_launchers.models import SubprocessCommand
 
-GzCommandEmitterProtocol = TypeEmitterProtocol[SubprocessCommand]
+GzCommandEmitterProtocol = EmitterProtocol[SubprocessCommand]

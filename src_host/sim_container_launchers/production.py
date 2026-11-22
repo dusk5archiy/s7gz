@@ -3,10 +3,9 @@ from __future__ import annotations
 import subprocess
 from dataclasses import dataclass, field
 
-from lib.type_emitters.protocol import TypeEmitterProtocol
+from lib.type_emitters.protocol import EmitterProtocol
 from src_common.subprocess_launchers.models import SubprocessCommand
-from src_common.subprocess_launchers.production import ProductionSubprocessLauncher
-from src_common.subprocess_launchers.protocol import SubprocessLauncherProtocol
+from src_common.subprocess_launchers.standard import StandardSubprocessLauncher
 from src_host.settings.common import CommonSettings
 from src_host.settings.sim_container import SimContainerSettings
 from src_host.sim_docker_command_emitters.production import (
@@ -15,13 +14,13 @@ from src_host.sim_docker_command_emitters.production import (
 
 
 @dataclass(kw_only=True, frozen=True)
-class ProductionSimContainerLauncher(SubprocessLauncherProtocol):
+class ProductionSimContainerLauncher(EmitterProtocol[int]):
     s_common: CommonSettings = field(default_factory=CommonSettings.build)
     s_sim_container: SimContainerSettings = field(
         default_factory=SimContainerSettings.build
     )
 
-    command_emitter: TypeEmitterProtocol[SubprocessCommand] = field(
+    command_emitter: EmitterProtocol[SubprocessCommand] = field(
         default_factory=ProductionSimDockerCommandEmitter
     )
 
@@ -56,4 +55,4 @@ class ProductionSimContainerLauncher(SubprocessLauncherProtocol):
 
     def __call__(self) -> int:
         self._prepare()
-        return ProductionSubprocessLauncher(command_emitter=self.command_emitter)()
+        return StandardSubprocessLauncher(command_emitter=self.command_emitter)()

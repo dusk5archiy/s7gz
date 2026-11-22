@@ -2,14 +2,14 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from lib.type_emitters.protocol import TypeEmitterProtocol
+from lib.type_emitters.protocol import EmitterProtocol
 from src_common.subprocess_launchers.models import SubprocessCommand
 
 from .models import VolumeMount
 
 
 @dataclass(kw_only=True, frozen=True)
-class StandardDockerCommandEmitter(TypeEmitterProtocol[SubprocessCommand]):
+class StandardDockerCommandEmitter(EmitterProtocol[SubprocessCommand]):
     image: str
     docker_executable: str = "docker"
     container_name: str | None = None

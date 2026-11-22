@@ -3,18 +3,18 @@ from __future__ import annotations
 from dataclasses import Field, dataclass, fields
 from typing import TYPE_CHECKING, Any, get_type_hints
 
-from lib.string_manipulations.string_transforms.protocol import StringTransformProtocol
+from lib.type_emitters.protocol import TransformProtocol
 
-from .protocol import DataclsAssignerProtocol
+from .protocol import DataclassHydratorProtocol
 
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
 
 
 @dataclass(kw_only=True, frozen=True)
-class ScaffoldDataclsAssigner(DataclsAssignerProtocol):
-    class_key_projection: StringTransformProtocol | None
-    data_key_projection: StringTransformProtocol | None
+class ScaffoldDataclassHydrator(DataclassHydratorProtocol):
+    class_key_projection: TransformProtocol[str] | None = None
+    data_key_projection: TransformProtocol[str] | None = None
 
     def __call__[T: DataclassInstance](
         self, *, datacls, data, coercer, extra_keys_allowed
@@ -29,7 +29,7 @@ class ScaffoldDataclsAssigner(DataclsAssignerProtocol):
             _projected_key = _class_key
 
             if self.class_key_projection is not None:
-                _projected_key = self.class_key_projection(string=_class_key)
+                _projected_key = self.class_key_projection(_class_key)
 
             projected_key_to_definition[_projected_key] = definition
 
@@ -41,7 +41,7 @@ class ScaffoldDataclsAssigner(DataclsAssignerProtocol):
         for data_key, data_value in data.items():
             _projected_key = data_key
             if self.data_key_projection is not None:
-                _projected_key = self.data_key_projection(string=data_key)
+                _projected_key = self.data_key_projection(data_key)
 
             _projected_key_to_data_value[_projected_key] = data_value
 
@@ -51,20 +51,19 @@ class ScaffoldDataclsAssigner(DataclsAssignerProtocol):
             )
 
             if unknown:
-                raise ValueError({"dtype": datacls, "unknown": unknown})
+                raise ValueError({"expected_type": str(datacls), "unknown": unknown})
 
         kwargs: dict[str, Any] = {}
 
         for projected_key, data_value in _projected_key_to_data_value.items():
             _definition = projected_key_to_definition.get(projected_key)
-
             if _definition is None:
                 continue
 
             _dtype = type_hints.get(_definition.name, _definition.type)
             _result = coercer(value=data_value, dtype=_dtype)
             if _result is None:
-                raise TypeError({"dtype": _dtype, "value": data_value})
+                raise TypeError({"value": data_value, "expected_type": str(_dtype)})
 
             kwargs[_definition.name] = _result.value
 

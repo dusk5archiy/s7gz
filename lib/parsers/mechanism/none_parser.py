@@ -15,7 +15,8 @@ class NoneParser(ParserProtocol):
         s = string.strip().lower()
         if s in self.values:
             return ParseResult(value=None)
-        raise ValueError(f"Unsupported value '{string}' for type '{dtype}'")
+
+        raise ValueError({"string": string, "expected_type": str(dtype)})
 
 
 __all__ = ["NoneParser"]

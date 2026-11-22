@@ -36,6 +36,6 @@ class CommonSettings:
     @classmethod
     def build(cls) -> CommonSettings:
         return StandardDataclassFetcher.Args(
-            dtype=CommonSettings,
-            dict_fetchers=[StandardShellDictFetcher(prefix="__HOST__")],
+            datacls=CommonSettings,
+            dict_emitter=StandardShellDictFetcher(prefix="__HOST__"),
         ).build()()

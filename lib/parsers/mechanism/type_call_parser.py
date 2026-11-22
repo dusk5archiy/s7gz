@@ -13,9 +13,9 @@ class TypeCallParser(ParserProtocol):
             return None
         try:
             return ParseResult(value=self.datatype(string))
-        except ValueError as e:
-            raise ValueError(
-                f"Unsupported value '{string}' for type '{dtype}': {e}"
+        except (ValueError, TypeError) as e:
+            raise type(e)(
+                {"string": string, "expected_type": str(dtype), "e": e}
             ) from e
 
 

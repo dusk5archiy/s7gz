@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
+from lib.type_emitters.protocol import EmitterProtocol
 from src_sim.settings.gazebo import GazeboSettings
 from src_sim.settings.resource import ResourceSettings
 from src_sim.stage_run.gui_config_file_emitters.production import (
     ProductionGuiConfigFileEmitter,
 )
-from src_sim.stage_run.gui_config_file_emitters.protocol import (
-    GuiConfigFileEmitterProtocol,
-)
 from src_sim.stage_run.world_sdf_emitters.production import ProductionWorldSdfEmitter
-from src_sim.stage_run.world_sdf_emitters.protocol import WorldSdfEmitterProtocol
 
 from .protocol import GzCommandEmitterProtocol
 from .standard import StandardGzCommandBuilder
@@ -22,10 +20,10 @@ class ProductionGzCommandEmitter(GzCommandEmitterProtocol):
     s_gazebo: GazeboSettings = field(default_factory=GazeboSettings.build)
     s_resource: ResourceSettings = field(default_factory=ResourceSettings.build)
 
-    world_sdf_emitter: WorldSdfEmitterProtocol = field(
+    world_sdf_emitter: EmitterProtocol[Path] = field(
         default_factory=ProductionWorldSdfEmitter
     )
-    gui_config_file_emitter: GuiConfigFileEmitterProtocol = field(
+    gui_config_file_emitter: EmitterProtocol[Path | None] = field(
         default_factory=ProductionGuiConfigFileEmitter
     )
 

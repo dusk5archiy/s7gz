@@ -4,10 +4,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from subprocess import Popen, TimeoutExpired
 
-from lib.type_emitters.protocol import TypeEmitterProtocol
+from lib.type_emitters.protocol import EmitterProtocol
 from src_common.subprocess_launchers.models import SubprocessCommand
-
-from .protocol import SubprocessLauncherProtocol
+from src_common.subprocess_launchers.protocol import SubprocessLauncherProtocol
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -63,9 +62,9 @@ class HandlerReplacementManager:
 
 @dataclass(kw_only=True, frozen=True)
 class StandardSubprocessLauncher(SubprocessLauncherProtocol):
-    terminate_timeout_s: float
-    supported_signums: Sequence[signal._SIGNUM]
-    command_emitter: TypeEmitterProtocol[SubprocessCommand]
+    terminate_timeout_s: float = 5.0
+    supported_signums: Sequence[signal._SIGNUM] = (signal.SIGINT, signal.SIGTERM)
+    command_emitter: EmitterProtocol[SubprocessCommand]
 
     def __call__(self):
         command = self.command_emitter()

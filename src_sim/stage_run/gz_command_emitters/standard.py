@@ -5,11 +5,8 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from lib.type_emitters.protocol import EmitterProtocol
 from src_common.subprocess_launchers.models import SubprocessCommand
-from src_sim.stage_run.gui_config_file_emitters.protocol import (
-    GuiConfigFileEmitterProtocol,
-)
-from src_sim.stage_run.world_sdf_emitters.protocol import WorldSdfEmitterProtocol
 
 from .protocol import GzCommandEmitterProtocol
 
@@ -27,8 +24,8 @@ class StandardGzCommandBuilder(GzCommandEmitterProtocol):
     auto_run: bool = True
     gz_executable: str = "gz"
     base_env: None | Mapping[str, str] = None
-    world_sdf_emitter: WorldSdfEmitterProtocol
-    gui_config_file_emitter: GuiConfigFileEmitterProtocol
+    world_sdf_emitter: EmitterProtocol[Path]
+    gui_config_file_emitter: EmitterProtocol[Path | None]
 
     def __post_init__(self) -> None:
         if not self.gz_executable:

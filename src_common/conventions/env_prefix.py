@@ -1,0 +1,1 @@
+SIM_ENV_PREFIX = "__SIM__"

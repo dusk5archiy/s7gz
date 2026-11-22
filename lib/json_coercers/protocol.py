@@ -2,15 +2,13 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from lib.coercers.models import CoerceResult
-from lib.coercers.protocol import CoercerProtocol
+from lib.coercers.protocol import CoercerProtocol, StrictCoercerProtocol
 
 
-class JsonContainerCoercerProtocol(Protocol):
-    def __call__(
-        self,
-        *,
-        value: Any,
-        dtype: Any,
-        coercer: CoercerProtocol | None,
-    ) -> CoerceResult | None: ...
+class JsonCoercerProtocol(CoercerProtocol, Protocol):
+    def can_handle(self, *, dtype: Any) -> bool: ...
+
+
+class StrictJsonCoercerProtocol(
+    StrictCoercerProtocol, JsonCoercerProtocol, Protocol
+): ...

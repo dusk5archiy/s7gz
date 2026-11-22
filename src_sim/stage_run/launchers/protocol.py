@@ -1,3 +1,3 @@
-from lib.type_emitters.protocol import TypeEmitterProtocol
+from lib.type_emitters.protocol import EmitterProtocol
 
-LauncherProtocol = TypeEmitterProtocol[int]
+LauncherProtocol = EmitterProtocol[int]

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from types import UnionType
 from typing import Union, get_args, get_origin
 
-from ..protocol import ParserProtocol
+from ..protocol import ParserProtocol, StrictParserProtocol
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -11,7 +11,7 @@ class UnionParser(ParserProtocol):
     Caution: Union order matters.
     """
 
-    inner_converter: ParserProtocol
+    inner_converter: StrictParserProtocol
 
     def __call__(self, *, string, dtype):
         origin = get_origin(dtype)
@@ -19,22 +19,23 @@ class UnionParser(ParserProtocol):
             return None
 
         args = get_args(dtype)
-        errors: list[str] = []
+        errors: list[Exception] = []
 
         for arg in args:
             try:
-                result = self.inner_converter(string=string, dtype=arg)
+                return self.inner_converter(string=string, dtype=arg)
             except (ValueError, TypeError) as e:
-                errors.append(str(e))
+                errors.append(e)
                 continue
 
-            if result is not None:
-                return result
-
         if errors:
-            raise ValueError(
-                f"Unsupported value '{string}' for type '{dtype}': {errors}"
-            )
+            if any(isinstance(e, ValueError) for e in errors):
+                raise ValueError(
+                    {"string": string, "expected_type": str(dtype), "errors": errors}
+                ) from errors[-1]
+            raise TypeError(
+                {"string": string, "expected_type": str(dtype), "errors": errors}
+            ) from errors[-1]
 
         return None
 

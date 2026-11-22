@@ -13,6 +13,6 @@ class ArgSettings:
     @classmethod
     def build(cls) -> ArgSettings:
         return StandardDataclassFetcher.Args(
-            dtype=ArgSettings,
-            dict_fetchers=[StandardShellDictFetcher(prefix="__ARG__")],
+            datacls=ArgSettings,
+            dict_emitter=StandardShellDictFetcher(prefix="__ARG__"),
         ).build()()

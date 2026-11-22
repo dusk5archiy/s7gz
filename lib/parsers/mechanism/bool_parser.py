@@ -18,7 +18,8 @@ class BoolParser(ParserProtocol):
             return ParseResult(value=True)
         if s in self.falses:
             return ParseResult(value=False)
-        raise ValueError(f"Unsupported value '{string}' for type '{dtype}'")
+
+        raise ValueError({"string": string, "expected_type": str(dtype)})
 
 
 __all__ = ["BoolParser"]

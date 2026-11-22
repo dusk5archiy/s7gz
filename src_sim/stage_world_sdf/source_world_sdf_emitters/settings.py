@@ -5,6 +5,7 @@ from pathlib import Path
 
 from lib.dataclass_fetchers.standard import StandardDataclassFetcher
 from lib.dict_fetchers.standard import StandardShellDictFetcher
+from src_common.conventions.env_prefix import SIM_ENV_PREFIX
 from src_sim.settings.arg import ArgSettings
 
 
@@ -23,21 +24,14 @@ class Settings:
     @property
     def empty_world_file(self):
         return (
-            Path("/opt")
-            / "ros"
+            Path("/opt/ros")
             / self.s_arg.ros_distro
-            / "opt"
-            / "gz_sim_vendor"
-            / "share"
-            / "gz"
-            / "gz-sim"
-            / "worlds"
-            / "empty.sdf"
+            / "opt/gz_sim_vendor/share/gz/gz-sim/worlds/empty.sdf"
         )
 
     @classmethod
     def build(cls) -> Settings:
         return StandardDataclassFetcher.Args(
-            dtype=Settings,
-            dict_fetchers=[StandardShellDictFetcher(prefix="__SIM__")],
+            datacls=Settings,
+            dict_emitter=StandardShellDictFetcher(prefix=SIM_ENV_PREFIX),
         ).build()()

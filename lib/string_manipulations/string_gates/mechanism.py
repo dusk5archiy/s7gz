@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .protocol import StringGateProtocol
+from lib.type_emitters.protocol import FunctionProtocol
 
 
 @dataclass(kw_only=True, frozen=True)
-class NoCasePrefixGate(StringGateProtocol):
+class NoCasePrefixGate(FunctionProtocol[str, str | None]):
     prefix: str
 
-    def __call__(self, *, string):
+    def __call__(self, string):
         _normalized_string = string.upper()
         _normalized_prefix = self.prefix.upper()
         if _normalized_string.startswith(_normalized_prefix):
