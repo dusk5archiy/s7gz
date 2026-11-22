@@ -12,7 +12,7 @@ Main() {
 
   # Install Python
   apt-get install -y --no-install-recommends \
-    python3 python-is-python3 python3-venv python3-dev python3-yaml
+    python3 python-is-python3 python3-pip python3-venv python3-dev python3-yaml
 
   # Install C++ and C-Python bindings
   apt-get install -y --no-install-recommends \

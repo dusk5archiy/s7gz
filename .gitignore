@@ -1,4 +1,5 @@
 **/*.py[cod]
+/**/.venv
 /**/__pycache__
 /playground
 /runtime

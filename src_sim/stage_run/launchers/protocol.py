@@ -1,3 +1,3 @@
-from lib.type_emitters.protocol import EmitterProtocol
+from s7dcls import EmitterProtocol
 
 LauncherProtocol = EmitterProtocol[int]

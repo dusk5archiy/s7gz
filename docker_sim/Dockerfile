@@ -28,6 +28,8 @@ ARG __ARG__USER_NAME
 ARG __ARG__SIM_WS_DIR
 
 WORKDIR ${__ARG__SIM_WS_DIR}
+COPY --chown=${__ARG__USER_NAME}:${__ARG__USER_NAME} requirements.txt requirements.txt
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 COPY --chown=${__ARG__USER_NAME}:${__ARG__USER_NAME} lib lib
 COPY --chown=${__ARG__USER_NAME}:${__ARG__USER_NAME} src_common src_common
 COPY --chown=${__ARG__USER_NAME}:${__ARG__USER_NAME} src_sim src_sim

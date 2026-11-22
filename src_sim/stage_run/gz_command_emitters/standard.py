@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from lib.type_emitters.protocol import EmitterProtocol
+from s7dcls import EmitterProtocol
 from src_common.subprocess_launchers.models import SubprocessCommand
 
 from .protocol import GzCommandEmitterProtocol

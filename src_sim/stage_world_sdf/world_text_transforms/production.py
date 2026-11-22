@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from lib.type_emitters.protocol import TransformProtocol
+from s7dcls import TransformProtocol
 from lib.xml_helpers import ET
 from src_sim.stage_world_sdf.world_xml_transforms.production import (
     ProductionWorldXmlTransform,

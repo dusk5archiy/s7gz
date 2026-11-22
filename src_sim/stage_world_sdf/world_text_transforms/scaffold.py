@@ -2,7 +2,7 @@ import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
-from lib.type_emitters.protocol import TransformProtocol
+from s7dcls import TransformProtocol
 
 
 @dataclass(kw_only=True, frozen=True)

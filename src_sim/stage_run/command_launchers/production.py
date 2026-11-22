@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from lib.type_emitters.protocol import EmitterProtocol
+from s7dcls import EmitterProtocol
 from src_common.subprocess_launchers.models import SubprocessCommand
 from src_common.subprocess_launchers.standard import StandardSubprocessLauncher
 from src_sim.stage_run.gz_command_emitters.production import ProductionGzCommandEmitter

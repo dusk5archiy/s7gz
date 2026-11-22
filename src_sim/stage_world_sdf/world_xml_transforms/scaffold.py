@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from lib.type_emitters.protocol import TransformProtocol
+from s7dcls import TransformProtocol
 from lib.xml_helpers import ET
 
 

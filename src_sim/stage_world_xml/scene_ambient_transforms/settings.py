@@ -3,9 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Annotated
 
-from lib.dataclass_fetchers.standard import StandardDataclassFetcher
-from lib.dict_fetchers.standard import StandardShellDictFetcher
-from lib.value_checkers.mechanism.interval_range import IntervalRangeValueChecker
+from s7dcls import (
+    IntervalRangeValueChecker,
+    StandardDataclassFetcher,
+    StandardShellDictFetcher,
+)
+
 from src_common.conventions.env_prefix import SIM_ENV_PREFIX
 
 

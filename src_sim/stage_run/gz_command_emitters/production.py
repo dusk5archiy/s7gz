@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from lib.type_emitters.protocol import EmitterProtocol
+from s7dcls import EmitterProtocol
 from src_sim.settings.gazebo import GazeboSettings
 from src_sim.settings.resource import ResourceSettings
 from src_sim.stage_run.gui_config_file_emitters.production import (

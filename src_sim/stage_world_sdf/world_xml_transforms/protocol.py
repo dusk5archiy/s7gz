@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
 
-from lib.type_emitters.protocol import TransformProtocol
+from s7dcls import TransformProtocol
 
 WorldXmlTransformProtocol = TransformProtocol[ET.Element]

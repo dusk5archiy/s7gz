@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 
-from lib.type_emitters.protocol import TransformProtocol
+from s7dcls import TransformProtocol
 
 from .settings import Settings
 from .standard import StandardSceneAmbientTransform

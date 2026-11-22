@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from lib.dataclass_fetchers.standard import StandardDataclassFetcher
-from lib.dict_fetchers.standard import StandardShellDictFetcher
+from s7dcls import StandardDataclassFetcher
+from s7dcls import StandardShellDictFetcher
 from src_common.conventions.env_prefix import SIM_ENV_PREFIX
 from src_sim.settings.arg import ArgSettings
 

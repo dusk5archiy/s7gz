@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from lib.type_emitters.protocol import EmitterProtocol, TransformProtocol
+from s7dcls import EmitterProtocol, TransformProtocol
 
 
 @dataclass(kw_only=True, frozen=True)

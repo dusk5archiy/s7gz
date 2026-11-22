@@ -4,8 +4,8 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from lib.dict_fetchers.standard import StandardJsonDictFetcher, StandardShellDictFetcher
-from lib.type_emitters.protocol import EmitterProtocol
+from s7dcls import EmitterProtocol, StandardJsonDictFetcher, StandardShellDictFetcher
+
 from src_common.conventions.env_prefix import SIM_ENV_PREFIX
 from src_common.docker_command_emitters.models import VolumeMount
 from src_common.docker_command_emitters.standard import StandardDockerCommandEmitter
