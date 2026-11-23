@@ -15,13 +15,13 @@ from src_sim.fuel.cache_integrity import find_missing_asset_files
 from src_sim.fuel.cache_resolvers.production import ProductionCacheResolver
 from src_sim.fuel.models import FuelAssetRef
 from src_sim.fuel.patched_models import asset_ref_from_rel_path, patch_fuel_model
-from src_sim.fuel.uri_localizers.production import ProductionFuelUriLocalizer
 from src_sim.fuel.uri_rules.production import ProductionFuelUriRule
 from src_sim.fuel.world_asset_ensurers.standard import StandardFuelUrlParser
 from src_sim.fuel.world_dependency_syncers.production import (
     ProductionWorldDependencySyncer,
 )
 from src_sim.fuel.world_url_emitters.settings import Settings as WorldUrlSettings
+from src_sim.model_uris import write_lightweight_model_wrapper
 from src_sim.settings.resource import ResourceSettings
 from src_ui.providers import PROVIDERS, AssetProviderSpec, get_provider, provider_from_rel_path
 from src_ui.px4_sync import sync_px4_gazebo_repo
@@ -114,7 +114,9 @@ def _scan_fuel_tree(
                         except Exception:
                             has_3d = False
                     missing_files = find_missing_asset_files(
-                        ver_dir, check_dae_textures=False
+                        ver_dir,
+                        check_dae_textures=False,
+                        runtime_dir=source_models_dir.parent,
                     )
                     rel_path = ver_dir.relative_to(root_dir).as_posix()
                     display_path = ver_dir.relative_to(provider_dir).as_posix()
@@ -361,19 +363,18 @@ class ModelManager:
         if not src_sdf.is_file():
             raise FileNotFoundError(f"model.sdf not found for px4/{sub_rel!r}")
 
-        xml_text = _fix_xml_namespaces(src_sdf.read_text(encoding="utf-8", errors="replace"))
-        if "https://fuel." in xml_text:
+        raw_text = src_sdf.read_text(encoding="utf-8", errors="replace")
+        if "https://fuel." in raw_text or "http://fuel." in raw_text:
             with tempfile.TemporaryDirectory() as tmp:
                 tmp_sdf = Path(tmp) / "model.sdf"
-                tmp_sdf.write_text(xml_text, encoding="utf-8")
+                tmp_sdf.write_text(raw_text, encoding="utf-8")
                 ProductionWorldDependencySyncer()(x=tmp_sdf)
-            xml_text = ProductionFuelUriLocalizer()(x=xml_text)
 
-        out_dir = (self.patched_dir / "px4" / src_dir.name).resolve()
-        if out_dir.exists():
-            shutil.rmtree(out_dir)
-        shutil.copytree(src_dir, out_dir)
-        (out_dir / "model.sdf").write_text(xml_text, encoding="utf-8")
+        write_lightweight_model_wrapper(
+            "px4",
+            src_dir.name,
+            resource=self.resource_settings,
+        )
 
     def patch_model(self, relative_path: str) -> dict[str, Any]:
         spec, sub_rel = provider_from_rel_path(relative_path)

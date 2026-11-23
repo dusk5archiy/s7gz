@@ -1,10 +1,17 @@
 from __future__ import annotations
 
-import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from src_sim.fuel.ignition_plugin_transforms import IgnitionPluginTransform
+from src_sim.fuel.uri_localizers.production import ProductionFuelUriLocalizer
+from src_sim.model_uris import (
+    canonicalize_sdf_element_uris,
+    ensure_model_wrappers,
+    infer_provider_from_path,
+    parse_sdf_xml_with_ns_fix,
+)
 from src_sim.settings.asset_ref import (
     AssetRef,
     PathAssetRef,
@@ -16,19 +23,6 @@ from ..gz_model_name_transforms.production import ProductionGzModelNameTransform
 from ..gz_model_name_transforms.protocol import GzModelNameTransformProtocol
 from ..models import VehicleSpec
 from .protocol import AirframeBuilderProtocol
-
-_SDF_TAG_RE = re.compile(r"<sdf\b([^>]*)>", re.IGNORECASE)
-_SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://")
-_LOCAL_ASSET_TAGS = {
-    "uri",
-    "albedo_map",
-    "normal_map",
-    "roughness_map",
-    "metalness_map",
-    "emissive_map",
-    "diffuse",
-    "normal",
-}
 
 
 def resolve_airframe_sdf_path(
@@ -51,39 +45,19 @@ def resolve_airframe_sdf_path(
     return resolved
 
 
-def _parse_sdf_with_ns_fix(sdf_path: Path) -> ET.Element:
-    xml_text = sdf_path.read_text(encoding="utf-8", errors="replace").lstrip()
-    try:
-        return ET.fromstring(xml_text)
-    except ET.ParseError:
-        def _add_ns(match: re.Match[str]) -> str:
-            attrs = match.group(1)
-            extra = ""
-            if "xmlns:gz=" not in attrs:
-                extra += ' xmlns:gz="http://gazebosim.org/schema"'
-            if "xmlns:ignition=" not in attrs:
-                extra += ' xmlns:ignition="http://ignitionrobotics.org/schema"'
-            return f"<sdf{attrs}{extra}>"
-
-        return ET.fromstring(_SDF_TAG_RE.sub(_add_ns, xml_text, count=1))
-
-
-def _rewrite_relative_asset_uris(
-    model: ET.Element, *, model_dir: Path, gz_model_name: str
-) -> None:
-    """Rewrite relative local URIs (e.g. `meshes/body.dae`) to `model://<gz_model_name>/...`."""
-    resolved_dir = model_dir.resolve()
-    for el in model.iter():
-        tag = el.tag.rsplit("}", 1)[-1]
-        if tag not in _LOCAL_ASSET_TAGS or not el.text:
-            continue
-        raw = el.text.strip()
-        if not raw or _SCHEME_RE.match(raw) or raw.startswith("/"):
-            continue
-        candidate = (resolved_dir / raw).resolve()
-        if candidate.is_relative_to(resolved_dir) and candidate.exists():
-            rel = candidate.relative_to(resolved_dir).as_posix()
-            el.text = f"model://{gz_model_name}/{rel}"
+def _resolve_source_model_dir_for_sdf(
+    sdf_path: Path, *, resource: ResourceSettings
+) -> Path:
+    """Return the corresponding `source_models/` dir if `sdf_path` is a patched wrapper, else `sdf_path.parent`."""
+    parent = sdf_path.parent.resolve()
+    patched_root = resource.patched_models_dir.resolve()
+    source_root = resource.source_models_dir.resolve()
+    if parent.is_relative_to(patched_root):
+        rel = parent.relative_to(patched_root)
+        cand = (source_root / rel).resolve()
+        if cand.is_relative_to(source_root) and cand.is_dir():
+            return cand
+    return parent
 
 
 def _ensure_pose_publisher(model: ET.Element, *, update_frequency: int = 30) -> None:
@@ -124,15 +98,21 @@ def _inject_motor_namespace(model: ET.Element, *, robot_namespace: str) -> None:
 class GenericSdfAirframeBuilder(AirframeBuilderProtocol):
     """Build a vehicle SDF uniformly from any model SDF path (PX4, Fuel, or custom)."""
 
+    s_resource: ResourceSettings = field(default_factory=ResourceSettings.build)
+    models_dir: Path | None = None
     gz_model_name_transform: GzModelNameTransformProtocol = field(
         default_factory=ProductionGzModelNameTransform
     )
     pose_publisher_update_frequency: int = 30
 
     def __call__(self, *, vehicle: VehicleSpec) -> ET.Element:
-        sdf_path = resolve_airframe_sdf_path(vehicle.airframe)
+        sdf_path = resolve_airframe_sdf_path(vehicle.airframe, resource=self.s_resource)
         gz_model_name = self.gz_model_name_transform(vehicle.namespace)
-        root = _parse_sdf_with_ns_fix(sdf_path)
+        raw_text = sdf_path.read_text(encoding="utf-8", errors="replace")
+        if "https://fuel." in raw_text or "http://fuel." in raw_text:
+            raw_text = ProductionFuelUriLocalizer(s_resource=self.s_resource)(raw_text)
+        raw_text = IgnitionPluginTransform()(raw_text)
+        root = parse_sdf_xml_with_ns_fix(raw_text)
         if root.tag == "model":
             wrapper = ET.Element("sdf", version="1.9")
             wrapper.append(root)
@@ -148,11 +128,28 @@ class GenericSdfAirframeBuilder(AirframeBuilderProtocol):
                 root.remove(inc)
                 model.append(inc)
         model.attrib["name"] = gz_model_name
-        _rewrite_relative_asset_uris(
-            model,
-            model_dir=sdf_path.parent,
-            gz_model_name=gz_model_name,
+
+        provider = infer_provider_from_path(sdf_path, resource=self.s_resource)
+        src_model_dir = _resolve_source_model_dir_for_sdf(
+            sdf_path, resource=self.s_resource
         )
+        ext_prefix: str | None = None
+        if self.models_dir is not None:
+            runtime_root = self.s_resource.runtime_dir.resolve()
+            gen_model_dir = (self.models_dir / gz_model_name).resolve()
+            if gen_model_dir.is_relative_to(runtime_root):
+                ext_prefix = gen_model_dir.relative_to(runtime_root).as_posix()
+
+        deps = canonicalize_sdf_element_uris(
+            model,
+            resource=self.s_resource,
+            provider=provider,
+            src_model_dir=src_model_dir,
+            external_model_uri_prefix=ext_prefix or gz_model_name,
+        )
+        if deps:
+            ensure_model_wrappers(deps, resource=self.s_resource)
+
         _inject_motor_namespace(model, robot_namespace=gz_model_name)
         _ensure_pose_publisher(
             model,

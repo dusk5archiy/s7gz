@@ -10,6 +10,7 @@ from ..uri_localizers.scaffold import ScaffoldFuelUriLocalizer
 from ..uri_rules.protocol import FuelUriRuleProtocol
 from ..uri_rules.standard import StandardFuelUriRule
 from .protocol import AssetDirRewriterProtocol
+from src_sim.settings.resource import ResourceSettings
 
 DEFAULT_TEXT_EXTENSIONS: tuple[str, ...] = (".sdf", ".config", ".dae", ".material")
 
@@ -17,6 +18,7 @@ DEFAULT_TEXT_EXTENSIONS: tuple[str, ...] = (".sdf", ".config", ".dae", ".materia
 @dataclass(kw_only=True, frozen=True)
 class StandardAssetDirRewriter(AssetDirRewriterProtocol):
     rule: FuelUriRuleProtocol
+    s_resource: ResourceSettings = field(default_factory=ResourceSettings.build)
     plugin_transform: IgnitionPluginTransform = field(
         default_factory=IgnitionPluginTransform
     )
@@ -38,6 +40,7 @@ class StandardAssetDirRewriter(AssetDirRewriterProtocol):
         localizer = ScaffoldFuelUriLocalizer(
             rule=self.rule,
             asset_dir_resolver=_resolve_asset,
+            s_resource=self.s_resource,
         )
         for path in sorted(asset_dir.rglob("*")):
             if not path.is_file() or path.suffix.lower() not in self.text_extensions:

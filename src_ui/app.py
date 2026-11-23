@@ -33,6 +33,7 @@ from src_sim.settings.asset_ref import (
     asset_ref_to_key,
     resolve_model_asset_path,
     resolve_world_asset_path,
+    resolve_world_generated_models_dir,
 )
 from src_sim.settings.resource import ResourceSettings
 from src_sim.stage_fleet.base_station import find_base_station_pose_from_file
@@ -470,10 +471,12 @@ def vehicle_catalog() -> dict[str, Any]:
 @app.get("/api/vehicles/models")
 def list_vehicle_models() -> dict[str, Any]:
     get_settings_service().apply_overrides()
-    return VehicleModelManager.build().list_models()
+    return VehicleModelManager.build().list_models(
+        active_world_key=_resolve_active_world_key()
+    )
 
 
-@app.get("/api/vehicles/models/generated/{model_name}")
+@app.get("/api/vehicles/models/generated/{model_name:path}")
 def read_generated_vehicle_model(model_name: str) -> dict[str, Any]:
     get_settings_service().apply_overrides()
     try:
@@ -484,12 +487,14 @@ def read_generated_vehicle_model(model_name: str) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.delete("/api/vehicles/models/generated/{model_name}")
+@app.delete("/api/vehicles/models/generated/{model_name:path}")
 def delete_generated_vehicle_model(model_name: str) -> dict[str, Any]:
     get_settings_service().apply_overrides()
     try:
         with acquire_fuel_operation(f"Delete generated vehicle: {model_name}"):
-            return VehicleModelManager.build().delete_generated_model(model_name)
+            return VehicleModelManager.build().delete_generated_model(
+                model_name, active_world_key=_resolve_active_world_key()
+            )
     except FuelTaskBusyError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except FileNotFoundError as exc:
@@ -629,9 +634,12 @@ def start_fuel_background_task(body: FuelTaskStartRequest) -> dict[str, str]:
             if not body.model_name:
                 raise HTTPException(status_code=400, detail="model_name is required")
             vname = body.model_name
+            active_wk = _resolve_active_world_key()
             task_id = start_fuel_task(
                 f"Delete generated vehicle: {vname}",
-                lambda: VehicleModelManager.build().delete_generated_model(vname),
+                lambda: VehicleModelManager.build().delete_generated_model(
+                    vname, active_world_key=active_wk
+                ),
             )
         else:
             raise HTTPException(status_code=400, detail=f"Unknown action: {body.action}")
@@ -870,11 +878,17 @@ def get_world_scene(
         source_world_path = candidate
     else:
         source_world_path = _resolve_local_source_world(auto_patch=False)
+    world_gen_dir = (
+        resolve_world_generated_models_dir(source_world_path, resource=res)
+        if source_world_path is not None
+        else None
+    )
     scene = extract_world_scene(
         source_world_path,
         source_models_dir=res.source_models_dir,
         patched_models_dir=res.patched_models_dir,
         generated_models_dir=res.generated_models_dir,
+        world_generated_models_dir=world_gen_dir,
         cache_resolver=ProductionCacheResolver(),
         uri_rule=ProductionFuelUriRule(),
         uncoercer=get_uncoercer(),
@@ -916,6 +930,11 @@ def _rewrite_collada_asset_uris(
     def _replace(match: re.Match[str]) -> str:
         open_tag, raw_uri, close_tag = match.groups()
         trimmed = raw_uri.strip()
+        if trimmed.startswith(("model://source_models/", "model://patched_models/", "model://generated_models/")):
+            target_rel = trimmed.removeprefix("model://").strip("/")
+            rel_from_dae = posixpath.relpath(target_rel, rel_dir)
+            return f"{open_tag}{quote(rel_from_dae, safe='/')}{close_tag}"
+
         if trimmed.lower().startswith("file://"):
             fuel_match = _FUEL_URI_MARKER_RE.search(trimmed)
             if not fuel_match:

@@ -21,18 +21,6 @@ class ResourceSettings:
 
     _runtime_dir: None | Path = None
     """Optional override for the base runtime directory (defaults to runtime)."""
-    _cache_dir: None | Path = None
-    """Optional override for internal sync/VCS cache directory (defaults to runtime/.cache)."""
-    _source_models_dir: None | Path = None
-    """Override root for raw source models grouped by provider (<dir>/<provider>/...)."""
-    _patched_models_dir: None | Path = None
-    """Override root for patched models grouped by provider (<dir>/<provider>/...)."""
-    _source_worlds_dir: None | Path = None
-    """Override root for raw source worlds grouped by provider (<dir>/<provider>/...)."""
-    _patched_worlds_dir: None | Path = None
-    """Override root for patched worlds grouped by provider (<dir>/<provider>/...)."""
-    _generated_models_dir: None | Path = None
-    """Override directory for generated per-vehicle SDF packages."""
 
     @ui_property
     @property
@@ -46,48 +34,36 @@ class ResourceSettings:
     @property
     def cache_dir(self) -> Path:
         """Internal sync/VCS cache directory."""
-        if self._cache_dir is not None:
-            return self._cache_dir.expanduser()
         return self.runtime_dir / ".cache"
 
     @ui_property
     @property
     def source_models_dir(self) -> Path:
         """Root for raw source models (<dir>/<provider>/...)."""
-        if self._source_models_dir is not None:
-            return self._source_models_dir.expanduser()
         return self.runtime_dir / "source_models"
 
     @ui_property
     @property
     def patched_models_dir(self) -> Path:
         """Root for patched models (<dir>/<provider>/...)."""
-        if self._patched_models_dir is not None:
-            return self._patched_models_dir.expanduser()
         return self.runtime_dir / "patched_models"
 
     @ui_property
     @property
     def source_worlds_dir(self) -> Path:
         """Root for raw source worlds (<dir>/<provider>/...)."""
-        if self._source_worlds_dir is not None:
-            return self._source_worlds_dir.expanduser()
         return self.runtime_dir / "source_worlds"
 
     @ui_property
     @property
     def patched_worlds_dir(self) -> Path:
         """Root for patched worlds (<dir>/<provider>/...)."""
-        if self._patched_worlds_dir is not None:
-            return self._patched_worlds_dir.expanduser()
         return self.runtime_dir / "patched_worlds"
 
     @ui_property
     @property
     def generated_models_dir(self) -> Path:
         """Directory for generated per-vehicle SDF models."""
-        if self._generated_models_dir is not None:
-            return self._generated_models_dir.expanduser()
         return self.runtime_dir / "generated_models"
 
     def source_models_of(self, provider: str) -> Path:

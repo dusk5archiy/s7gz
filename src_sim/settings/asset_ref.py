@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import hashlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
 from .resource import ResourceSettings
+
+_SAFE_SLUG_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -131,6 +135,48 @@ def resolve_model_asset_path(
     return p
 
 
+def resolve_world_generated_models_dir(
+    world: AssetRef | Path | str | None,
+    *,
+    resource: ResourceSettings | None = None,
+) -> Path:
+    """Return the isolated per-world directory inside `generated_models_dir`.
+
+    Examples:
+        - CatalogAssetRef('px4/forest.sdf') -> runtime/generated_models/catalog/px4/forest
+        - PathAssetRef('/opt/ros/.../empty.sdf') -> runtime/generated_models/path/empty--<hash8>
+    """
+    res = resource or ResourceSettings.build()
+    base = res.generated_models_dir
+    if world is None:
+        return base / "_default"
+
+    if isinstance(world, (CatalogAssetRef, PathAssetRef)):
+        ref: AssetRef = world
+    else:
+        raw = str(world).strip()
+        if not raw:
+            return base / "_default"
+        if raw.startswith(("catalog:", "path:")):
+            parsed = asset_ref_from_key(raw)
+            if parsed is None:
+                return base / "_default"
+            ref = parsed
+        else:
+            ref = world_ref_from_path(raw, resource=res)
+
+    if isinstance(ref, CatalogAssetRef):
+        rel = _validate_catalog_rel_path(ref.relative_path)
+        if rel.lower().endswith(".sdf"):
+            rel = rel[:-4]
+        return base / "catalog" / rel
+
+    posix = ref.path.expanduser().as_posix()
+    stem = _SAFE_SLUG_RE.sub("_", ref.path.stem).strip("_") or "world"
+    digest = hashlib.sha1(posix.encode("utf-8")).hexdigest()[:8]
+    return base / "path" / f"{stem}--{digest}"
+
+
 __all__ = [
     "AssetRef",
     "CatalogAssetRef",
@@ -139,5 +185,6 @@ __all__ = [
     "asset_ref_to_key",
     "resolve_model_asset_path",
     "resolve_world_asset_path",
+    "resolve_world_generated_models_dir",
     "world_ref_from_path",
 ]

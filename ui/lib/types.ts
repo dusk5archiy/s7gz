@@ -290,6 +290,9 @@ export interface WorldSceneResponse {
 }
 
 export interface VehicleModelItem {
+  relative_path: string;
+  world_scope: string;
+  world_key: string;
   name: string;
   has_sdf: boolean;
   has_3d?: boolean;
@@ -300,13 +303,23 @@ export interface VehicleModelItem {
   is_patched?: boolean;
 }
 
+export interface WorldGeneratedModelsGroup {
+  world_scope: string;
+  world_key: string;
+  dir_rel: string;
+  models: VehicleModelItem[];
+}
+
 export interface VehicleModelsListResponse {
   generated_models_dir: string;
+  active_world_key?: string | null;
+  worlds: WorldGeneratedModelsGroup[];
   generated_models: VehicleModelItem[];
 }
 
 export interface VehicleModelReadResponse {
   scope: "generated";
+  relative_path?: string;
   name: string;
   size_bytes: number;
   content: string;

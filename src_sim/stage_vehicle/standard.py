@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from src_sim.fuel.fs import atomic_path
+from src_sim.settings.resource import ResourceSettings
 
 from .airframes.px4_generic import resolve_airframe_sdf_path
 from .gz_model_name_transforms.production import ProductionGzModelNameTransform
@@ -30,7 +31,7 @@ def build_model_config_xml(*, model_name: str, sdf_version: str, description: st
 
 
 def _copy_sibling_assets(*, src_dir: Path, dst_dir: Path) -> None:
-    """Copy local asset folders/files (meshes/, materials/, etc.) next to the source SDF."""
+    """Copy local asset folders/files (meshes/, materials/, etc.) for external airframes outside `runtime_dir`."""
     if not src_dir.is_dir() or src_dir.resolve() == dst_dir.resolve():
         return
     dst_dir.mkdir(parents=True, exist_ok=True)
@@ -49,6 +50,7 @@ def _copy_sibling_assets(*, src_dir: Path, dst_dir: Path) -> None:
 @dataclass(kw_only=True, frozen=True)
 class StandardSdfModelPackageWriter(ModelPackageWriterProtocol):
     models_dir: Path
+    s_resource: ResourceSettings = field(default_factory=ResourceSettings.build)
     gz_model_name_transform: GzModelNameTransformProtocol = field(
         default_factory=ProductionGzModelNameTransform
     )
@@ -56,10 +58,20 @@ class StandardSdfModelPackageWriter(ModelPackageWriterProtocol):
     def __call__(self, *, vehicle: VehicleSpec, sdf_root: ET.Element) -> Path:
         gz_model_name = self.gz_model_name_transform(vehicle.namespace)
         model_dir = self.models_dir / gz_model_name
+        # Reset directory cleanly so lightweight catalog airframes do not retain stale copied meshes.
+        if model_dir.exists():
+            shutil.rmtree(model_dir)
+        model_dir.mkdir(parents=True, exist_ok=True)
+
         if vehicle.airframe is not None:
             try:
-                src_sdf = resolve_airframe_sdf_path(vehicle.airframe)
-                _copy_sibling_assets(src_dir=src_sdf.parent, dst_dir=model_dir)
+                src_sdf = resolve_airframe_sdf_path(
+                    vehicle.airframe, resource=self.s_resource
+                )
+                runtime_root = self.s_resource.runtime_dir.resolve()
+                # Only copy local sibling assets when the airframe lives outside `runtime_dir`.
+                if not src_sdf.parent.resolve().is_relative_to(runtime_root):
+                    _copy_sibling_assets(src_dir=src_sdf.parent, dst_dir=model_dir)
             except (FileNotFoundError, ValueError):
                 pass
 

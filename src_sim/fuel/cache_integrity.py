@@ -60,10 +60,14 @@ def _resolve_sdf_entry(version_dir: Path) -> Path | None:
 
 
 def find_missing_asset_files(
-    version_dir: Path, *, check_dae_textures: bool = True
+    version_dir: Path,
+    *,
+    check_dae_textures: bool = True,
+    runtime_dir: Path | None = None,
 ) -> list[str]:
     """Return relative paths of local SDF/mesh/texture files missing inside `version_dir`."""
     resolved_root = version_dir.resolve()
+    resolved_runtime = runtime_dir.resolve() if runtime_dir is not None else None
     if not resolved_root.is_dir():
         return ["<missing_dir>"]
 
@@ -89,7 +93,21 @@ def find_missing_asset_files(
         for el in sdf_root.findall(xpath):
             if not el.text:
                 continue
-            rel = _strip_local_uri(el.text, resolved_root)
+            raw_text = el.text.strip()
+            if (
+                resolved_runtime is not None
+                and raw_text.startswith(("model://source_models/", "model://patched_models/"))
+            ):
+                rt_sub = raw_text.removeprefix("model://").strip("/")
+                rt_target = (resolved_runtime / rt_sub).resolve()
+                if not rt_target.is_relative_to(resolved_runtime):
+                    continue
+                if not rt_target.exists():
+                    _record_missing(rt_sub)
+                elif check_dae_textures and rt_target.is_file() and rt_target.suffix.lower() == ".dae":
+                    dae_files.append(rt_target)
+                continue
+            rel = _strip_local_uri(raw_text, resolved_root)
             if not rel:
                 continue
             target = (resolved_root / rel).resolve()
@@ -101,10 +119,11 @@ def find_missing_asset_files(
                 dae_files.append(target)
 
     for dae_path in dae_files:
+        dae_base = resolved_runtime if (resolved_runtime is not None and dae_path.is_relative_to(resolved_runtime)) else resolved_root
         try:
             dae_text = dae_path.read_text(encoding="utf-8", errors="replace")
         except OSError:
-            _record_missing(dae_path.relative_to(resolved_root).as_posix())
+            _record_missing(dae_path.relative_to(dae_base).as_posix())
             continue
         for match in _DAE_INIT_FROM_RE.finditer(dae_text):
             raw_ref = unquote(match.group(1).strip())
@@ -114,10 +133,10 @@ def find_missing_asset_files(
             if "." not in Path(raw_ref).name and "/" not in raw_ref:
                 continue
             tex_path = (dae_path.parent / raw_ref).resolve()
-            if not tex_path.is_relative_to(resolved_root):
+            if not tex_path.is_relative_to(dae_base):
                 continue
             if not tex_path.is_file():
-                _record_missing(tex_path.relative_to(resolved_root).as_posix())
+                _record_missing(tex_path.relative_to(dae_base).as_posix())
 
     return missing
 

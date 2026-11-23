@@ -128,10 +128,13 @@ def _model_package_roots(
     source_models_dir: Path,
     patched_models_dir: Path | None,
     generated_models_dir: Path | None,
+    world_generated_models_dir: Path | None = None,
 ) -> list[Path]:
     """Ordered directories containing flat model packages (for resolving `model://<pkg>`)."""
     roots: list[Path] = []
-    if generated_models_dir is not None and generated_models_dir.is_dir():
+    if world_generated_models_dir is not None and world_generated_models_dir.is_dir():
+        roots.append(world_generated_models_dir.resolve())
+    elif generated_models_dir is not None and generated_models_dir.is_dir():
         roots.append(generated_models_dir.resolve())
     for base in (patched_models_dir, source_models_dir):
         if base is None or not base.is_dir():
@@ -159,6 +162,41 @@ def _is_under_allowed_roots(
     return False
 
 
+def _resolve_runtime_uri_target(
+    uri_text: str,
+    *,
+    source_models_dir: Path,
+    patched_models_dir: Path | None,
+    generated_models_dir: Path | None,
+) -> Path | None:
+    """Resolve `model://{source_models,patched_models,generated_models}/...` directly."""
+    if not uri_text.startswith("model://"):
+        return None
+    rest = uri_text.removeprefix("model://").strip().strip("/")
+    if not rest:
+        return None
+    bucket_map: dict[str, Path | None] = {
+        "source_models": source_models_dir,
+        "patched_models": patched_models_dir,
+        "generated_models": generated_models_dir,
+    }
+    if "/" not in rest:
+        return None
+    bucket, sub = rest.split("/", 1)
+    root = bucket_map.get(bucket)
+    if root is None:
+        return None
+    root_res = root.resolve()
+    for cand_sub in (sub, unquote(sub)):
+        cleaned = cand_sub.strip().strip("/")
+        if not cleaned or "\\" in cleaned or ".." in cleaned.split("/"):
+            continue
+        cand = (root_res / cleaned).resolve()
+        if cand.is_relative_to(root_res) and cand.exists():
+            return cand
+    return None
+
+
 def _resolve_mesh_file(
     uri_text: str,
     *,
@@ -166,6 +204,7 @@ def _resolve_mesh_file(
     source_models_dir: Path,
     patched_models_dir: Path | None,
     generated_models_dir: Path | None,
+    world_generated_models_dir: Path | None = None,
     cache_resolver: CacheResolverProtocol,
     uri_rule: FuelUriRuleProtocol,
 ) -> Path | None:
@@ -174,6 +213,14 @@ def _resolve_mesh_file(
         return None
 
     if cleaned.startswith("model://"):
+        direct = _resolve_runtime_uri_target(
+            cleaned,
+            source_models_dir=source_models_dir,
+            patched_models_dir=patched_models_dir,
+            generated_models_dir=generated_models_dir,
+        )
+        if direct is not None and direct.is_file():
+            return direct
         parts = cleaned.removeprefix("model://").split("/", 1)
         if len(parts) == 2 and parts[0] and parts[1]:
             pkg, sub = parts[0], parts[1].lstrip("/")
@@ -181,6 +228,7 @@ def _resolve_mesh_file(
                 source_models_dir=source_models_dir,
                 patched_models_dir=patched_models_dir,
                 generated_models_dir=generated_models_dir,
+                world_generated_models_dir=world_generated_models_dir,
             ):
                 cand = (pkg_root / pkg / sub).resolve()
                 if cand.is_file() and cand.is_relative_to(pkg_root):
@@ -257,12 +305,23 @@ def _resolve_model_dir(
     source_models_dir: Path,
     patched_models_dir: Path | None,
     generated_models_dir: Path | None,
+    world_generated_models_dir: Path | None = None,
     cache_resolver: CacheResolverProtocol,
     uri_rule: FuelUriRuleProtocol,
 ) -> Path | None:
     cleaned = uri_text.strip()
     if not cleaned:
         return None
+
+    if cleaned.startswith("model://"):
+        direct = _resolve_runtime_uri_target(
+            cleaned,
+            source_models_dir=source_models_dir,
+            patched_models_dir=patched_models_dir,
+            generated_models_dir=generated_models_dir,
+        )
+        if direct is not None and direct.is_dir():
+            return direct
 
     pkg = (
         cleaned.removeprefix("model://").strip("/")
@@ -274,6 +333,7 @@ def _resolve_model_dir(
             source_models_dir=source_models_dir,
             patched_models_dir=patched_models_dir,
             generated_models_dir=generated_models_dir,
+            world_generated_models_dir=world_generated_models_dir,
         ):
             cand = (pkg_root / pkg).resolve()
             if cand.is_dir() and cand.is_relative_to(pkg_root):
@@ -305,6 +365,7 @@ def _extract_visuals(
     source_models_dir: Path,
     patched_models_dir: Path | None,
     generated_models_dir: Path | None,
+    world_generated_models_dir: Path | None = None,
     cache_resolver: CacheResolverProtocol,
     uri_rule: FuelUriRuleProtocol,
     uncoercer: StrictUncoercerProtocol,
@@ -342,6 +403,7 @@ def _extract_visuals(
                     source_models_dir=source_models_dir,
                     patched_models_dir=patched_models_dir,
                     generated_models_dir=generated_models_dir,
+                    world_generated_models_dir=world_generated_models_dir,
                     cache_resolver=cache_resolver,
                     uri_rule=uri_rule,
                 )
@@ -381,6 +443,7 @@ def _extract_visuals(
                         source_models_dir=source_models_dir,
                         patched_models_dir=patched_models_dir,
                         generated_models_dir=generated_models_dir,
+                        world_generated_models_dir=world_generated_models_dir,
                         cache_resolver=cache_resolver,
                         uri_rule=uri_rule,
                     )
@@ -539,6 +602,7 @@ def _extract_visuals(
                 source_models_dir=source_models_dir,
                 patched_models_dir=patched_models_dir,
                 generated_models_dir=generated_models_dir,
+                world_generated_models_dir=world_generated_models_dir,
                 cache_resolver=cache_resolver,
                 uri_rule=uri_rule,
                 uncoercer=uncoercer,
@@ -557,6 +621,7 @@ def _extract_visuals(
             source_models_dir=source_models_dir,
             patched_models_dir=patched_models_dir,
             generated_models_dir=generated_models_dir,
+            world_generated_models_dir=world_generated_models_dir,
             cache_resolver=cache_resolver,
             uri_rule=uri_rule,
         )
@@ -580,6 +645,7 @@ def _extract_visuals(
                 source_models_dir=source_models_dir,
                 patched_models_dir=patched_models_dir,
                 generated_models_dir=generated_models_dir,
+                world_generated_models_dir=world_generated_models_dir,
                 cache_resolver=cache_resolver,
                 uri_rule=uri_rule,
                 uncoercer=uncoercer,
@@ -598,6 +664,7 @@ def extract_model_visuals(
     source_models_dir: Path,
     patched_models_dir: Path | None = None,
     generated_models_dir: Path | None = None,
+    world_generated_models_dir: Path | None = None,
     cache_resolver: CacheResolverProtocol,
     uri_rule: FuelUriRuleProtocol,
     uncoercer: StrictUncoercerProtocol | None = None,
@@ -622,6 +689,7 @@ def extract_model_visuals(
         source_models_dir=source_models_dir,
         patched_models_dir=patched_models_dir,
         generated_models_dir=generated_models_dir,
+        world_generated_models_dir=world_generated_models_dir,
         cache_resolver=cache_resolver,
         uri_rule=uri_rule,
         uncoercer=active_uncoercer,
@@ -638,6 +706,7 @@ def extract_world_scene(
     source_models_dir: Path,
     patched_models_dir: Path | None = None,
     generated_models_dir: Path | None = None,
+    world_generated_models_dir: Path | None = None,
     cache_resolver: CacheResolverProtocol,
     uri_rule: FuelUriRuleProtocol,
     uncoercer: StrictUncoercerProtocol | None = None,
@@ -678,7 +747,10 @@ def extract_world_scene(
         name = (inc_el.findtext("name") or "").strip() or "unnamed"
         pose = _safe_parse_pose(inc_el)
         uri_text = (inc_el.findtext("uri") or "").strip()
-        if exclude_generated_models and uri_text.startswith(generated_uri_prefix):
+        if exclude_generated_models and (
+            uri_text.startswith("model://generated_models/")
+            or uri_text.startswith(generated_uri_prefix)
+        ):
             continue
         visuals: list[dict[str, Any]] = []
 
@@ -688,6 +760,7 @@ def extract_world_scene(
                 source_models_dir=source_models_dir,
                 patched_models_dir=patched_models_dir,
                 generated_models_dir=generated_models_dir,
+                world_generated_models_dir=world_generated_models_dir,
                 cache_resolver=cache_resolver,
                 uri_rule=uri_rule,
             )
@@ -711,6 +784,7 @@ def extract_world_scene(
                                 source_models_dir=source_models_dir,
                                 patched_models_dir=patched_models_dir,
                                 generated_models_dir=generated_models_dir,
+                                world_generated_models_dir=world_generated_models_dir,
                                 cache_resolver=cache_resolver,
                                 uri_rule=uri_rule,
                                 uncoercer=active_uncoercer,

@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 from s7dcls import TransformProtocol
 
 from lib.xml_helpers import ET
+from src_sim.model_uris import canonicalize_sdf_element_uris
+from src_sim.settings.resource import ResourceSettings
 from src_sim.stage_fleet.production import ProductionFleetXmlTransform
 from src_sim.stage_world_xml.magnetic_field_transforms.production import (
     ProductionMagneticFieldTransform,
@@ -27,7 +31,23 @@ from .scaffold import SequentialXmlTransform
 
 
 @dataclass(kw_only=True, frozen=True)
+class WorldModelUriCanonicalizeTransform(TransformProtocol[ET.Element]):
+    provider: str | None = None
+    s_resource: ResourceSettings = field(default_factory=ResourceSettings.build)
+
+    def __call__(self, x: ET.Element) -> ET.Element:
+        canonicalize_sdf_element_uris(
+            x,
+            resource=self.s_resource,
+            provider=self.provider,
+        )
+        return x
+
+
+@dataclass(kw_only=True, frozen=True)
 class ProductionWorldXmlTransform(TransformProtocol[ET.Element]):
+    world_provider: str | None = None
+    s_resource: ResourceSettings = field(default_factory=ResourceSettings.build)
     strip_plugins_transform: TransformProtocol[ET.Element] = field(
         default_factory=ProductionStripPluginsTransform
     )
@@ -59,6 +79,10 @@ class ProductionWorldXmlTransform(TransformProtocol[ET.Element]):
                 self.physics_transform,
                 self.sensors_plugin_transform,
                 self.system_plugins_transform,
+                WorldModelUriCanonicalizeTransform(
+                    provider=self.world_provider,
+                    s_resource=self.s_resource,
+                ),
                 self.fleet_transform,
             )
         )(x)

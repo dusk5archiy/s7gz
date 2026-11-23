@@ -6,6 +6,7 @@ from pathlib import Path
 from s7dcls import EmitterProtocol, TransformProtocol
 
 from src_sim.fuel.patched_models import sync_world_models_to_patched
+from src_sim.model_uris import infer_provider_from_path
 from src_sim.settings.resource import ResourceSettings
 from src_sim.stage_fleet.production import ProductionFleetXmlTransform
 from src_sim.stage_fleet.settings import resolve_world_fleet_key
@@ -33,9 +34,15 @@ class ProductionWorldSdfEmitter(EmitterProtocol[Path]):
     def __call__(self):
         source_file = self.source_world_emitter()
         world_key = resolve_world_fleet_key(source_file, resource=self.s_resource)
+        world_provider = infer_provider_from_path(source_file, resource=self.s_resource)
         text_transform = self.world_text_transform or ProductionWorldTextTransform(
             world_transform=ProductionWorldXmlTransform(
-                fleet_transform=ProductionFleetXmlTransform(world_key=world_key)
+                world_provider=world_provider,
+                s_resource=self.s_resource,
+                fleet_transform=ProductionFleetXmlTransform(
+                    world_key=world_key,
+                    s_resource=self.s_resource,
+                ),
             )
         )
         out_sdf = ScaffoldWorldSdfEmitter(
