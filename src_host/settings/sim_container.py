@@ -3,8 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from s7dcls import StandardDataclassFetcher
-from s7dcls import StandardShellDictFetcher
+from s7dcls import StandardDataclassFetcher, StandardShellDictFetcher
 
 
 @dataclass(kw_only=True, frozen=True)

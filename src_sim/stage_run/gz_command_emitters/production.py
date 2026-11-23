@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from s7dcls import EmitterProtocol
+
 from src_sim.settings.gazebo import GazeboSettings
 from src_sim.settings.resource import ResourceSettings
 from src_sim.stage_run.gui_config_file_emitters.production import (
@@ -30,13 +31,22 @@ class ProductionGzCommandEmitter(GzCommandEmitterProtocol):
     def __call__(self):
         resource = self.s_resource
         settings = self.s_gazebo
+
+        def _provider_subdirs(root: Path) -> list[Path]:
+            if not root.is_dir():
+                return []
+            return sorted((p for p in root.iterdir() if p.is_dir()), key=lambda p: p.name.lower())
+
+        resource_paths = (
+            resource.generated_models_dir,
+            *_provider_subdirs(resource.patched_worlds_dir),
+            *_provider_subdirs(resource.patched_models_dir),
+            *_provider_subdirs(resource.source_models_dir),
+        )
         return StandardGzCommandBuilder(
-            fuel_cache_dir=resource.fuel_cache_dir,
+            fuel_cache_dir=resource.source_models_of("fuel"),
             headless=settings.headless,
-            resource_paths=(
-                resource.generated_models_dir,
-                resource.patched_worlds_dir,
-            ),
+            resource_paths=resource_paths,
             world_sdf_emitter=self.world_sdf_emitter,
             gui_config_file_emitter=self.gui_config_file_emitter,
         )()

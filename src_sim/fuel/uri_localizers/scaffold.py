@@ -20,6 +20,6 @@ class ScaffoldFuelUriLocalizer(TransformProtocol[str]):
             if version_dir is None:
                 return None
             target = version_dir / match.subpath if match.subpath else version_dir
-            return f"{target.as_uri()}{match.trailing_ws}"
+            return f"{target.resolve().as_uri()}{match.trailing_ws}"
 
         return self.rule.replace_all(text=x, rewrite=_rewrite)

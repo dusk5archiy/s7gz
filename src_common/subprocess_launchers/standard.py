@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from subprocess import Popen, TimeoutExpired
 
 from s7dcls import EmitterProtocol
+
 from src_common.subprocess_launchers.models import SubprocessCommand
 from src_common.subprocess_launchers.protocol import SubprocessLauncherProtocol
 

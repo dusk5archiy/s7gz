@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from s7dcls import EmitterProtocol
+
 from src_common.subprocess_launchers.models import SubprocessCommand
 
 from .protocol import GzCommandEmitterProtocol
@@ -54,17 +55,17 @@ class StandardGzCommandBuilder(GzCommandEmitterProtocol):
         if self.headless:
             cmd.append("-s")
         elif gui_config_file is not None:
-            cmd.extend(["--gui-config", str(gui_config_file)])
+            cmd.extend(["--gui-config", str(gui_config_file.resolve())])
 
-        cmd.append(str(world_sdf))
+        cmd.append(str(world_sdf.resolve()))
         return cmd
 
     def _build_env(self) -> dict[str, str]:
         env = dict(os.environ if self.base_env is None else self.base_env)
-        env["GZ_FUEL_CACHE_PATH"] = str(self.fuel_cache_dir)
+        env["GZ_FUEL_CACHE_PATH"] = str(self.fuel_cache_dir.resolve())
 
         existing_resource_paths = env.get("GZ_SIM_RESOURCE_PATH", "").split(os.pathsep)
-        configured_resource_paths = (str(path) for path in self.resource_paths)
+        configured_resource_paths = (str(path.resolve()) for path in self.resource_paths)
         merged_resource_paths = _merge_unique_paths(
             configured_resource_paths,
             existing_resource_paths,

@@ -1,34 +1,44 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Annotated
+from dataclasses import dataclass, field
 
 from s7dcls import (
-    IntervalRangeValueChecker,
     StandardDataclassFetcher,
     StandardShellDictFetcher,
 )
 
 from src_common.conventions.env_prefix import SIM_ENV_PREFIX
+from src_common.conventions.ui_property import ui_property
+
+from .models import AmbientColor, UnitFloat
+
+PREFIX = SIM_ENV_PREFIX + "AMBIENT__"
 
 
 @dataclass(frozen=True, kw_only=True)
 class Settings:
+    """World scene ambient lighting override."""
+
     enabled: bool = True
+    """Apply `<scene><ambient>` color to the patched world SDF."""
 
-    _ambient: tuple[
-        Annotated[float, IntervalRangeValueChecker.sigmoid()],
-        Annotated[float, IntervalRangeValueChecker.sigmoid()],
-        Annotated[float, IntervalRangeValueChecker.sigmoid()],
-        Annotated[float, IntervalRangeValueChecker.sigmoid()],
-    ] = (0.0, 0.0, 0.0, 1.0)
+    _ambient: AmbientColor = field(default_factory=AmbientColor)
+    """RGBA ambient color channels."""
 
-    _uniform: None | Annotated[float, IntervalRangeValueChecker.sigmoid()] = None
+    _uniform: None | UnitFloat = None
+    """Optional uniform grayscale intensity [0.0, 1.0] overriding RGB with alpha=1.0."""
 
+    @ui_property
     @property
-    def ambient(self):
+    def ambient(self) -> AmbientColor:
+        """Effective RGBA ambient color after applying _uniform override if set."""
         if self._uniform is not None:
-            return (self._uniform, self._uniform, self._uniform, 1.0)
+            return AmbientColor(
+                red=self._uniform,
+                green=self._uniform,
+                blue=self._uniform,
+                alpha=1.0,
+            )
 
         return self._ambient
 
@@ -36,5 +46,5 @@ class Settings:
     def build(cls) -> Settings:
         return StandardDataclassFetcher.Args(
             datacls=Settings,
-            dict_emitter=StandardShellDictFetcher(prefix=SIM_ENV_PREFIX + "AMBIENT__"),
+            dict_emitter=StandardShellDictFetcher(prefix=PREFIX),
         ).build()()

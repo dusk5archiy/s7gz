@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from s7dcls import EmitterProtocol, StandardJsonDictFetcher, StandardShellDictFetcher
+from s7dcls import EmitterProtocol, StandardShellDictFetcher
 
 from src_common.conventions.env_prefix import SIM_ENV_PREFIX
 from src_common.docker_command_emitters.models import VolumeMount
@@ -12,6 +13,36 @@ from src_common.docker_command_emitters.standard import StandardDockerCommandEmi
 from src_common.subprocess_launchers.models import SubprocessCommand
 from src_host.settings.common import CommonSettings
 from src_host.settings.sim_container import SimContainerSettings
+
+
+def _encode_env_value(value: object) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, separators=(",", ":"))
+    return str(value)
+
+
+def _load_ui_json_env_vars(*, file: Path, prefix: str) -> dict[str, str]:
+    if not file.is_file():
+        return {}
+    raw = json.loads(file.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError({"file": file, "expected_type": "dict"})
+
+    prefix_upper = prefix.upper()
+    result: dict[str, str] = {}
+    for key, value in raw.items():
+        if not isinstance(key, str) or not key.upper().startswith(prefix_upper):
+            continue
+        encoded = _encode_env_value(value)
+        if encoded is None:
+            continue
+        stripped = key[len(prefix) :]
+        result[stripped] = encoded
+    return result
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -31,9 +62,9 @@ class ProductionSimDockerCommandEmitter(EmitterProtocol[SubprocessCommand]):
         if display:
             env["DISPLAY"] = display
 
-        ui_vars = StandardJsonDictFetcher(
-            prefix=env_prefix, file=self.s_common.ui_json_file
-        )()
+        ui_vars = _load_ui_json_env_vars(
+            file=self.s_common.ui_json_file, prefix=env_prefix
+        )
         shell_vars = StandardShellDictFetcher(prefix=env_prefix)()
 
         for key, value in {**ui_vars, **shell_vars}.items():

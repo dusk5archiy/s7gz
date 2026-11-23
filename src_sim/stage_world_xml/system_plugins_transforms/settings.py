@@ -6,6 +6,8 @@ from s7dcls import StandardDataclassFetcher, StandardShellDictFetcher
 
 from src_common.conventions.env_prefix import SIM_ENV_PREFIX
 
+PREFIX = SIM_ENV_PREFIX + "SYSTEM_PLUGINS__"
+
 WORLD_SYSTEM_PLUGINS: tuple[tuple[str, str], ...] = (
     ("gz-sim-physics-system", "gz::sim::systems::Physics"),
     ("gz-sim-user-commands-system", "gz::sim::systems::UserCommands"),
@@ -20,14 +22,16 @@ WORLD_SYSTEM_PLUGINS: tuple[tuple[str, str], ...] = (
 
 @dataclass(frozen=True, kw_only=True)
 class Settings:
+    """Core Gazebo system plugins injected into the world SDF."""
+
     enabled: bool = True
+    """Ensure required Gazebo system plugins are present in the world SDF."""
     plugins: tuple[tuple[str, str], ...] = WORLD_SYSTEM_PLUGINS
+    """List of `(plugin_filename, plugin_cpp_class)` pairs to inject."""
 
     @classmethod
     def build(cls) -> Settings:
         return StandardDataclassFetcher.Args(
             datacls=Settings,
-            dict_emitter=StandardShellDictFetcher(
-                prefix=SIM_ENV_PREFIX + "SYSTEM_PLUGINS__"
-            ),
+            dict_emitter=StandardShellDictFetcher(prefix=PREFIX),
         ).build()()

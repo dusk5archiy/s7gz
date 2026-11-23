@@ -19,9 +19,11 @@ class ProductionSimLauncher(LauncherProtocol):
     def __call__(self):
         resource = self.s_resource
         runtime_dirs = (
+            resource.cache_dir,
             resource.source_worlds_dir,
             resource.patched_worlds_dir,
-            resource.fuel_cache_dir,
+            resource.source_models_dir,
+            resource.patched_models_dir,
             resource.generated_models_dir,
         )
         return PrepareFolderLauncher(

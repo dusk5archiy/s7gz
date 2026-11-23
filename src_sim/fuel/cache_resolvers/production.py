@@ -20,7 +20,7 @@ class ProductionCacheResolver(CacheResolverProtocol):
 
     def _delegate(self) -> StandardCacheResolver:
         return StandardCacheResolver(
-            fuel_cache_dir=self.s_resource.fuel_cache_dir,
+            fuel_cache_dir=self.s_resource.source_models_of("fuel"),
             server_policy=self.s_server.server_policy,
             marker_glob=self.settings.marker_glob,
         )

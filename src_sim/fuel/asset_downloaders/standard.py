@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from ..fs import atomic_path
 from ..models import FuelAssetRef, FuelManifest
+from ..progress import emit_fuel_progress
 from .protocol import ManifestDownloaderProtocol, ManifestFetcherProtocol
 
 _USER_AGENT = {"User-Agent": "s7gz-fuel/1.0"}
@@ -121,10 +122,17 @@ class StandardManifestDownloader(ManifestDownloaderProtocol):
         version_dir = asset_root / version
         staging_dir = asset_root / f".tmp.{version}.{uuid4().hex[:8]}"
         staging_dir.mkdir(parents=True, exist_ok=True)
+        total = len(manifest.files)
+        emit_fuel_progress(
+            f"Downloading {asset.owner}/{asset.asset_kind}/{asset.name} v{version} ({total} files)...",
+            kind="asset_start",
+            done=0,
+            total=total,
+        )
         try:
             worker_count = max(1, min(self.max_workers, len(manifest.files)))
             with ThreadPoolExecutor(max_workers=worker_count) as pool:
-                futures = [
+                future_to_rel = {
                     pool.submit(
                         self._download_one_file,
                         server=server,
@@ -132,14 +140,23 @@ class StandardManifestDownloader(ManifestDownloaderProtocol):
                         version=version,
                         rel_path=rel_path,
                         dest=staging_dir / rel_path,
-                    )
+                    ): rel_path
                     for rel_path in manifest.files
-                ]
+                }
+                done = 0
                 try:
-                    for future in as_completed(futures):
+                    for future in as_completed(future_to_rel):
                         future.result()
+                        done += 1
+                        rel_path = future_to_rel[future]
+                        emit_fuel_progress(
+                            f"[{done}/{total}] {asset.name}: {rel_path}",
+                            kind="file",
+                            done=done,
+                            total=total,
+                        )
                 except Exception:
-                    for future in futures:
+                    for future in future_to_rel:
                         future.cancel()
                     raise
             if version_dir.exists():

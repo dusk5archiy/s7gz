@@ -8,6 +8,7 @@ from s7dcls import FunctionProtocol
 
 from ..models import FuelAssetId, FuelAssetRef
 from ..fuel_uris import FuelUriExtractor
+from ..progress import run_with_current_context
 
 FUEL_TEXT_EXTENSIONS: tuple[str, ...] = (".sdf", ".config", ".dae", ".material")
 
@@ -23,7 +24,10 @@ class ThreadedBatchAssetEnsurer:
         worker_count = max(1, min(self.max_workers, len(refs)))
         resolved: dict[FuelAssetId, Path] = {}
         with ThreadPoolExecutor(max_workers=worker_count) as pool:
-            future_to_id = {pool.submit(self.asset_ensurer, ref): ref.id for ref in refs}
+            future_to_id = {
+                pool.submit(run_with_current_context, self.asset_ensurer, ref): ref.id
+                for ref in refs
+            }
             for future in as_completed(future_to_id):
                 asset_id = future_to_id[future]
                 resolved[asset_id] = future.result()

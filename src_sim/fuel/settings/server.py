@@ -6,6 +6,8 @@ from s7dcls import StandardDataclassFetcher, StandardShellDictFetcher
 
 from src_common.conventions.env_prefix import SIM_ENV_PREFIX
 
+PREFIX = SIM_ENV_PREFIX + "FUEL__"
+
 SERVERS = (
     "fuel.gazebosim.org",
     "fuel.ignitionrobotics.org",
@@ -41,8 +43,12 @@ class FuelServerPolicy:
 
 @dataclass(kw_only=True, frozen=True)
 class ServerSettings:
+    """Gazebo Fuel server host selection and fallback policy."""
+
     canonical_server: str = SERVERS[0]
+    """Primary Fuel server hostname."""
     fallback_server: str | None = SERVERS[1]
+    """Optional secondary Fuel server hostname if the primary fails."""
 
     @property
     def server_policy(self) -> FuelServerPolicy:
@@ -55,5 +61,8 @@ class ServerSettings:
     def build(cls) -> ServerSettings:
         return StandardDataclassFetcher.Args(
             datacls=ServerSettings,
-            dict_emitter=StandardShellDictFetcher(prefix=SIM_ENV_PREFIX + "FUEL__"),
+            dict_emitter=StandardShellDictFetcher(prefix=PREFIX),
         ).build()()
+
+
+Settings = ServerSettings

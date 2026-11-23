@@ -20,9 +20,10 @@ class ProductionWorldSdfExporter(FunctionProtocol[Path, Path]):
     s_resource: ResourceSettings = field(default_factory=ResourceSettings.build)
 
     def _output_path(self) -> Path:
+        out_root = self.s_resource.source_worlds_of("fuel")
         if self.s_world.world_url and self.s_world.world_url.strip():
             ref = StandardFuelUrlParser()(self.s_world.world_url)
-            return self.s_resource.source_worlds_dir / ref.owner / f"{ref.name}.sdf"
+            return out_root / ref.owner / f"{ref.name}.sdf"
 
         if self.s_world.world_name and self.s_world.world_name.strip():
             raw = self.s_world.world_name.strip()
@@ -30,9 +31,9 @@ class ProductionWorldSdfExporter(FunctionProtocol[Path, Path]):
                 owner, name = (p.strip() for p in raw.split("/", 1))
             else:
                 owner, name = self.s_url.default_owner, raw
-            return self.s_resource.source_worlds_dir / owner / f"{name}.sdf"
+            return out_root / owner / f"{name}.sdf"
 
-        return self.s_resource.source_worlds_dir / "fuel_world.sdf"
+        return out_root / "fuel_world.sdf"
 
     def __call__(self, x: Path) -> Path:
         return ScaffoldWorldSdfExporter(

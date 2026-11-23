@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from s7dcls import TransformProtocol
 
 from lib.xml_helpers import ET
+from src_sim.stage_fleet.production import ProductionFleetXmlTransform
 from src_sim.stage_world_xml.magnetic_field_transforms.production import (
     ProductionMagneticFieldTransform,
 )
@@ -45,6 +46,9 @@ class ProductionWorldXmlTransform(TransformProtocol[ET.Element]):
     system_plugins_transform: TransformProtocol[ET.Element] = field(
         default_factory=ProductionSystemPluginsTransform
     )
+    fleet_transform: TransformProtocol[ET.Element] = field(
+        default_factory=ProductionFleetXmlTransform
+    )
 
     def __call__(self, x: ET.Element) -> ET.Element:
         return SequentialXmlTransform(
@@ -55,5 +59,6 @@ class ProductionWorldXmlTransform(TransformProtocol[ET.Element]):
                 self.physics_transform,
                 self.sensors_plugin_transform,
                 self.system_plugins_transform,
+                self.fleet_transform,
             )
         )(x)

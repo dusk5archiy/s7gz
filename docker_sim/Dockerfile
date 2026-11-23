@@ -14,7 +14,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 FROM stage__ubuntu AS stage__gazebo
 
 ARG __ARG__ROS_DISTRO
-
 ENV __ARG__ROS_DISTRO=${__ARG__ROS_DISTRO}
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -28,8 +27,11 @@ ARG __ARG__USER_NAME
 ARG __ARG__SIM_WS_DIR
 
 WORKDIR ${__ARG__SIM_WS_DIR}
-COPY --chown=${__ARG__USER_NAME}:${__ARG__USER_NAME} requirements.txt requirements.txt
-RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
+
+COPY --chown=${__ARG__USER_NAME}:${__ARG__USER_NAME} docker_sim/requirements.txt requirements.txt
+RUN python3 -m venv .venv && .venv/bin/pip install --no-cache-dir -r requirements.txt
+ENV PATH="${__ARG__SIM_WS_DIR}/.venv/bin:${PATH}"
+
 COPY --chown=${__ARG__USER_NAME}:${__ARG__USER_NAME} lib lib
 COPY --chown=${__ARG__USER_NAME}:${__ARG__USER_NAME} src_common src_common
 COPY --chown=${__ARG__USER_NAME}:${__ARG__USER_NAME} src_sim src_sim
